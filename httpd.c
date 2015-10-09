@@ -276,7 +276,7 @@ void htmlToBuffer(char *replyMessage, RequestLine RL,ResponseLine RsL){
   	}
   	else if (strcmp(RL.urlCommand, "test") == 0){
 	    strcat(document, ">\n");
-            strcat(pContent, pOpen);
+        strcat(pContent, pOpen);
 			strcat(pContent, "\t\t\t");
             strcat(pContent, RsL.URI);
             strcat(pContent, "<br />\n\t\t\t");
@@ -290,7 +290,17 @@ void htmlToBuffer(char *replyMessage, RequestLine RL,ResponseLine RsL){
 	        strcat(document, pContent);
   	}
 	else{
-	    strcat(document, ">\n");
+		strcat(pContent, ">\n");
+		strcat(pContent, pOpen);
+		strcat(pContent, "\t\t\t");
+        strcat(pContent, RsL.URI);
+        strcat(pContent, "<br />\n\t\t\t");
+    	strcat(pContent, RsL.clientIP);
+        strcat(pContent, ":");
+	    strcat(pContent, RsL.clientPort);
+        strcat(pContent, "<br />\n\t\t");
+		strcat(pContent, pClose);
+		strcat(document, pContent);
 	}
 
  	if(strcmp(RL.requestType, "POST") == 0){
