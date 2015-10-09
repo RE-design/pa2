@@ -145,3 +145,9 @@
 2015-10-09 15:32:04 : 127.0.0.1:40029 GET localhost:18534/favicon.ico:200
 2015-10-09 15:32:11 : 127.0.0.1:40035 GET localhost:18534/color:200
 2015-10-09 15:32:11 : 127.0.0.1:40037 GET localhost:18534/favicon.ico:200
+2015-10-09 18:07:37 : 127.0.0.1:51718 GET localhost:18422/color?bg=pink:200
+2015-10-09 18:07:38 : 127.0.0.1:51718 GET localhost:18422/favicon.ico:200
+2015-10-09 18:08:09 : 127.0.0.1:51841 GET localhost:18422/color?bg=%20blue:200
+2015-10-09 18:08:09 : 127.0.0.1:51841 GET localhost:18422/favicon.ico:200
+2015-10-09 18:08:15 : 127.0.0.1:51947 GET localhost:18422/color?bg=blue:200
+2015-10-09 18:08:15 : 127.0.0.1:51947 GET localhost:18422/favicon.ico:200
