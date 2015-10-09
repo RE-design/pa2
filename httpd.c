@@ -46,20 +46,6 @@ typedef struct ResponseLine{
 	char requestCookie[16];
 }ResponseLine;
 
-// Struct for IP index
-typedef struct IPtoIndex{
-	int index;
-	char clientIP[INET_ADDRSTRLEN];
-}IPtoIndex;
-//set IP index for multiple connections
-void setIPindex(IPtoIndex *IP, struct sockaddr_in client, int *count){
-	printf("inIPindex\n");
-	struct sockaddr_in* ip4Add = (struct sockaddr_in*)&client;
-	int ipAddr = ip4Add->sin_addr.s_addr;
-	inet_ntop( AF_INET, &ipAddr, IP[*count].clientIP, INET_ADDRSTRLEN);
-	IP[*count].index = *count;
-	*count++;
-}
 // function to construct URI
 void constructURI(ResponseLine *RsL, RequestLine RL){
 	memset(RsL->URI, '\0', sizeof(RsL->URI));
@@ -138,17 +124,19 @@ void setUrlArgs(RequestLine *RL){
 
 //Checks if the connection is keep alive and gets the host
 void setValuesFromRequestHeaders(ResponseLine *RsL, RequestLine RL){
-	printf("setVFRH\n");
 	memset(RsL->host, '\0', sizeof(RsL->host));
 	memset(RsL->requestCookie, '\0', sizeof(RsL->requestCookie));
 
 	RsL->connectionAlive = false;
 	int i, j, k;
 	for (i = 0; i < RL.numberOfHeaders; i++){
+		//Checking if connection is keep alive and sets variable to
+		//true or false (bool)
 	    if(strncmp(RL.headers[i], "Connection: keep-alive", 22) == 0){
 			RsL->connectionAlive = true;
 			printf("connection is keep alice");
 	    }
+		//Getting host and put it in the right variable
 	    if(strncmp(RL.headers[i], "Host:",4) == 0){
 			int count = 0;
 			for (j = 6; RL.headers[i][j] != '\0'; j++){
@@ -156,10 +144,11 @@ void setValuesFromRequestHeaders(ResponseLine *RsL, RequestLine RL){
 		    	count++;
 		}
 
-		RsL->host[count] = '\0';
+		RsL->host[count] = '\0'; // ending string "host"
 	    }
 		int count = 0;
 		k = 0;
+		//checking cookies
 		if(strncmp(RL.headers[i], "Cookie:", 6) == 0){
 			printf("theheader!: %s\n", RL.headers[i]);
 			while(RL.headers[i][k] != '='){
@@ -202,8 +191,9 @@ void constructResponseLine(RequestLine RL, ResponseLine *RsL){
 	RsL->date[20] = '\0';
 	strcpy(RsL->version, RL.version);
 
+	//if Request is not for HTML 1.0 or 1.1 - statuscode 300 bad Request error
 	if(memcmp(RsL->version, "HTTP/1.0", 7) != 0 &&
-		memcmp(RsL->version, "HTTP/1.0", 7) != 0){
+		memcmp(RsL->version, "HTTP/1.1", 7) != 0){
 		strcpy(RsL->statuscode, "300");
 		strcpy(RsL->reasonPhrase, "Bad Request");
 	}
@@ -213,6 +203,7 @@ void constructResponseLine(RequestLine RL, ResponseLine *RsL){
 		strcpy(RsL->reasonPhrase, "OK");
 	}
 
+	//constructing and concating the responseLine to one string
 	strcpy(RsL->server,"Server: Simple HTTP server");
 	strcpy(RsL->conType, "Content-Type: text/html");
 	strcpy(RsL->conAlive, "Connection: keep-alive");
@@ -232,16 +223,18 @@ void constructResponseLine(RequestLine RL, ResponseLine *RsL){
 	strcat(RsL->responseLine, RsL->server);
 	strcat(RsL->responseLine, "\r\n");
 
+	// if no cookie then Set-Cookie
 	if(RL.cookie[0] != '\0'){
 		strcat(RsL->responseLine, "Set-Cookie: ");
 		strcat(RsL->responseLine, RL.cookie);
 		strcat(RsL->responseLine, "\r\f");
 	}
 
+	// if the variable that checks keep alive is false send connection close
 	if(RsL->connectionAlive == false){
 		strcat(RsL->responseLine, RsL->conClose);
 	}
-
+	// if true then keep-alive
 	else{
 		strcat(RsL->responseLine, RsL->conAlive);
 	}
