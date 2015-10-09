@@ -11,6 +11,7 @@
 #include <glib.h>
 #include <stdbool.h>
 
+// Struct constructed to handle requests
 typedef struct RequestLine{
 	int rlSize;
 	int numberOfHeaders;
@@ -25,6 +26,7 @@ typedef struct RequestLine{
 	char cookie[16];
 }RequestLine;
 
+// Struct constructed to handle responses
 typedef struct ResponseLine{
 	int rsLSize;
 	char statuscode[4];
@@ -44,19 +46,7 @@ typedef struct ResponseLine{
 	char requestCookie[16];
 }ResponseLine;
 
-typedef struct IPtoIndex{
-	int index;
-	char clientIP[INET_ADDRSTRLEN];
-}IPtoIndex;
-//set IP index for multiple connections
-void setIPindex(IPtoIndex *IP, struct sockaddr_in client, int *count){
-	printf("inIPindex\n");
-	struct sockaddr_in* ip4Add = (struct sockaddr_in*)&client;
-	int ipAddr = ip4Add->sin_addr.s_addr;
-	inet_ntop( AF_INET, &ipAddr, IP[*count].clientIP, INET_ADDRSTRLEN);
-	IP[*count].index = *count;
-	*count++;
-}
+// function to construct URI
 void constructURI(ResponseLine *RsL, RequestLine RL){
 	memset(RsL->URI, '\0', sizeof(RsL->URI));
 
@@ -134,17 +124,19 @@ void setUrlArgs(RequestLine *RL){
 
 //Checks if the connection is keep alive and gets the host
 void setValuesFromRequestHeaders(ResponseLine *RsL, RequestLine RL){
-	printf("setVFRH\n");
 	memset(RsL->host, '\0', sizeof(RsL->host));
 	memset(RsL->requestCookie, '\0', sizeof(RsL->requestCookie));
 
 	RsL->connectionAlive = false;
 	int i, j, k;
 	for (i = 0; i < RL.numberOfHeaders; i++){
+		//Checking if connection is keep alive and sets variable to
+		//true or false (bool)
 	    if(strncmp(RL.headers[i], "Connection: keep-alive", 22) == 0){
 			RsL->connectionAlive = true;
 			printf("connection is keep alice");
 	    }
+		//Getting host and put it in the right variable
 	    if(strncmp(RL.headers[i], "Host:",4) == 0){
 			int count = 0;
 			for (j = 6; RL.headers[i][j] != '\0'; j++){
@@ -152,15 +144,16 @@ void setValuesFromRequestHeaders(ResponseLine *RsL, RequestLine RL){
 		    	count++;
 		}
 
-		RsL->host[count] = '\0';
+		RsL->host[count] = '\0'; // ending string "host"
 	    }
 		int count = 0;
 		k = 0;
+		//checking cookies
 		if(strncmp(RL.headers[i], "Cookie:", 6) == 0){
 			printf("theheader!: %s\n", RL.headers[i]);
 			while(RL.headers[i][k] != '='){
 				k++;
-			} 
+			}
 			k++;
 			while ( RL.headers[i][k] != '\0'){
 				RsL->requestCookie[count] = RL.headers[i][k];
@@ -171,7 +164,7 @@ void setValuesFromRequestHeaders(ResponseLine *RsL, RequestLine RL){
 		}
 	}
 }
-
+// constructing variables to form a response string
 void constructResponseLine(RequestLine RL, ResponseLine *RsL){
 	setValuesFromRequestHeaders(RsL, RL);
 	memset(RsL->version, '\0', sizeof(RsL->version));
@@ -198,8 +191,9 @@ void constructResponseLine(RequestLine RL, ResponseLine *RsL){
 	RsL->date[20] = '\0';
 	strcpy(RsL->version, RL.version);
 
+	//if Request is not for HTML 1.0 or 1.1 - statuscode 300 bad Request error
 	if(memcmp(RsL->version, "HTTP/1.0", 7) != 0 &&
-		memcmp(RsL->version, "HTTP/1.0", 7) != 0){
+		memcmp(RsL->version, "HTTP/1.1", 7) != 0){
 		strcpy(RsL->statuscode, "300");
 		strcpy(RsL->reasonPhrase, "Bad Request");
 	}
@@ -209,6 +203,7 @@ void constructResponseLine(RequestLine RL, ResponseLine *RsL){
 		strcpy(RsL->reasonPhrase, "OK");
 	}
 
+	//constructing and concating the responseLine to one string
 	strcpy(RsL->server,"Server: Simple HTTP server");
 	strcpy(RsL->conType, "Content-Type: text/html");
 	strcpy(RsL->conAlive, "Connection: keep-alive");
@@ -228,16 +223,18 @@ void constructResponseLine(RequestLine RL, ResponseLine *RsL){
 	strcat(RsL->responseLine, RsL->server);
 	strcat(RsL->responseLine, "\r\n");
 
+	// if no cookie then Set-Cookie
 	if(RL.cookie[0] != '\0'){
 		strcat(RsL->responseLine, "Set-Cookie: ");
 		strcat(RsL->responseLine, RL.cookie);
 		strcat(RsL->responseLine, "\r\f");
 	}
 
+	// if the variable that checks keep alive is false send connection close
 	if(RsL->connectionAlive == false){
 		strcat(RsL->responseLine, RsL->conClose);
 	}
-
+	// if true then keep-alive
 	else{
 		strcat(RsL->responseLine, RsL->conAlive);
 	}
@@ -248,6 +245,7 @@ void constructResponseLine(RequestLine RL, ResponseLine *RsL){
 	printf("response:! %s\n", RsL->responseLine);
 }
 
+// Fill the request struct - fishing out strings adding to appropriate variables
 void fillRequestStruct(char *buffer, RequestLine *RL){
 	memset(RL->version, '\0', sizeof(RL->version));
 	memset(RL->headers, '\0', sizeof(RL->headers));
@@ -257,7 +255,7 @@ void fillRequestStruct(char *buffer, RequestLine *RL){
 	for(i = 0; i < 15; i++){
 		memset(RL->headers[i], '\0', sizeof(RL->headers[i]));
 	}
-	
+
 	int index = 0;
 	int counter = 0;
 	RL->rlSize = 0;
@@ -337,7 +335,7 @@ void fillRequestStruct(char *buffer, RequestLine *RL){
 	}
 	setUrlArgs(RL);
 }
-
+// function that parses the html to print out
 void htmlToBuffer(char *replyMessage, RequestLine RL,ResponseLine RsL){
 	if(strcmp(RL.requestType, "HEAD") == 0){return;}
 
@@ -353,11 +351,11 @@ void htmlToBuffer(char *replyMessage, RequestLine RL,ResponseLine RsL){
 
 	if(strcmp(RL.urlCommand, "color") == 0){
 		strcat(document, " style='background-color:");
-		if(RL.color[0] != '\0'){	
+		if(RL.color[0] != '\0'){
     		strcat(document, RL.color);
 		}
 		else{
-			strcat(document, RsL.requestCookie);	
+			strcat(document, RsL.requestCookie);
 		}
     		strcat(document, "'>\n");
   	}
@@ -408,7 +406,7 @@ void writeMessage(char *buffer, ResponseLine RsL){
 	buffer[strlen(RsL.responseLine)] = '\0';
 
 }
-
+// write tha data to a file
 void writeToFile(struct sockaddr_in client, RequestLine RL, ResponseLine RsL){
 
 	FILE* fd;
@@ -445,12 +443,8 @@ int main(int argc, char **argv)
     struct sockaddr_in server, client;
 	fd_set rfds;
 	FD_ZERO(&rfds);
-//	FD_ZERO(&master);
     char message[1024];
 	char replyMessage[1024];
-   	IPtoIndex IP[MAXCLIENTS];
-	int countIP = 0;
-	memset(IP, 0, sizeof(IP));
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     memset(&server, 0, sizeof(server));
     server.sin_family = AF_INET;
