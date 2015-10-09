@@ -22,7 +22,8 @@ typedef struct RequestLine{
 	char urlCommand[6];
 	char color[10];
 	char urlArgs[40];
-	char cookie[16];	
+	char cookie[16];
+	char requestCookie[16];	
 }RequestLine;
 
 typedef struct ResponseLine{
@@ -310,7 +311,8 @@ void htmlToBuffer(char *replyMessage, RequestLine RL,ResponseLine RsL){
   	char docClose[] = "\t</body>\r\n</html>\r\n\r\n\0";
   	char closingSymbol[] = ">";
   	if(strcmp(RL.urlCommand, "color") == 0){
-    	    strcat(document, " style='background-color:");
+			strcat(document, " style='background-color:");
+			
     	    strcat(document, RL.color);
     	    strcat(document, "'>\n");
   	}
