@@ -23,7 +23,6 @@ typedef struct RequestLine{
 	char color[10];
 	char urlArgs[40];
 	char cookie[16];
-	char requestCookie[16];
 }RequestLine;
 
 typedef struct ResponseLine{
@@ -42,6 +41,7 @@ typedef struct ResponseLine{
 	bool connectionAlive;
 	char clientIP[INET_ADDRSTRLEN];
 	char clientPort[6];
+	char requestCookie[16];
 }ResponseLine;
 
 typedef struct IPtoIndex{
@@ -133,7 +133,7 @@ void setValuesFromRequestHeaders(ResponseLine *RsL, RequestLine RL){
 	memset(RsL->host, '\0', sizeof(RsL->host));
 
 	RsL->connectionAlive = false;
-	int i, j;
+	int i, j, k;
 	for (i = 0; i < RL.numberOfHeaders; i++){
 	    if(strncmp(RL.headers[i], "Connection: keep-alive", 22) == 0){
 			RsL->connectionAlive = true;
@@ -141,14 +141,22 @@ void setValuesFromRequestHeaders(ResponseLine *RsL, RequestLine RL){
 	    }
 	    if(strncmp(RL.headers[i], "Host:",4) == 0){
 			int count = 0;
-			for(j = 6; RL.headers[i][j] != '\0'; j++){
+			for (j = 6; RL.headers[i][j] != '\0'; j++){
 		    	RsL->host[count] = RL.headers[i][j];
 		    	count++;
 		}
 
 		RsL->host[count] = '\0';
 	    }
+		int count = 0;
+		if(strncmp(RL.headers[i], "Cookie:", 6) == 0)
+			for (k = 7; RL.headers[i][k] != '\0'; k++){
+				RsL->requestCookie[count] = RL.headers[i][k];
+				count++;
+			}
+			RsL->requestCookie[count] = '\0';
 	}
+	printf("RequestCooki is: %s\n", RsL->requestCookie);
 }
 
 void constructResponseLine(RequestLine RL, ResponseLine *RsL){
