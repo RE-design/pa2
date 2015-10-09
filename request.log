@@ -207,3 +207,11 @@
 2015-10-09 16:14:16 : 127.0.0.1:40933 GET localhost:18534/color?bg=red:200
 2015-10-09 16:14:16 : 127.0.0.1:40933 GET localhost:18534/color?bg=red:200
 2015-10-09 16:14:18 : 127.0.0.1:40935 GET localhost:18534/favicon.ico:200
+2015-10-09 16:32:40 : 127.0.0.1:41441 GET localhost:18534/color?bg=green:200
+2015-10-09 16:32:40 : 127.0.0.1:41443 GET localhost:18534/favicon.ico:200
+2015-10-09 16:32:42 : 127.0.0.1:41449 GET localhost:18534/color?bg=green:200
+2015-10-09 16:32:42 : 127.0.0.1:41449 GET localhost:18534/favicon.ico:200
+2015-10-09 16:32:46 : 127.0.0.1:41454 GET localhost:18534/color?bg=blue:200
+2015-10-09 16:32:46 : 127.0.0.1:41454 GET localhost:18534/favicon.ico:200
+2015-10-09 16:32:52 : 127.0.0.1:41456 GET localhost:18534/color?bg=pink:200
+2015-10-09 16:32:52 : 127.0.0.1:41458 GET localhost:18534/favicon.ico:200
