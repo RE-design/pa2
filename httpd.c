@@ -300,7 +300,7 @@ void fillRequestStruct(char *buffer, RequestLine *RL){
 	while(1){
 	    counter = 0;
 
- 	    while(buffer[RL->rlSize] != '\r' && buffer[RL->rlSize + 1] != '\n' && counter < 39){
+ 	    while(buffer[RL->rlSize] != '\r' && buffer[RL->rlSize + 1] != '\n'){
 			RL->headers[HL][counter] = buffer[RL->rlSize];
 			RL->rlSize++;
 			printf("%c", RL->headers[HL][counter]);
@@ -410,10 +410,10 @@ void writeMessage(char *buffer, ResponseLine RsL){
 void writeToFile(struct sockaddr_in client, RequestLine RL, ResponseLine RsL){
 
 	FILE* fd;
-	fd = fopen("httpd.log", "a");
+	fd = fopen("request.log", "a");
 
 	if(fd == NULL){
-	    fd = fopen("httpd.log", "w+");
+	    fd = fopen("request.log", "w+");
 		if(fd == NULL){
 			printf("error opening file");
 	    }
@@ -441,28 +441,34 @@ int main(int argc, char **argv)
 	int yes = 1;
     int i, max_fd, sockfd, clients[MAXCLIENTS], retval, connfd, j;
     struct sockaddr_in server, client;
-	fd_set rfds;
+	fd_set rfds, master;
 	FD_ZERO(&rfds);
-    char message[1024];
+	FD_ZERO(&master);
+    char message[512];
 	char replyMessage[1024];
+   	IPtoIndex IP[MAXCLIENTS];
+	int countIP = 0;
+	memset(IP, 0, sizeof(IP));
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     memset(&server, 0, sizeof(server));
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = htonl(INADDR_ANY);
     server.sin_port = htons(atoi(argv[1]));
 
+
+	//	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
     bind(sockfd, (struct sockaddr *) &server, (socklen_t) sizeof(server));
 
 	if(listen(sockfd, 5) < 0){
 		perror("listen");
 	}
 
-	FD_SET(sockfd, &rfds);
+	FD_SET(sockfd, &master);
 	max_fd = sockfd;
 
 	for (;;) {
 		ssize_t n;
-	//	rfds = master;
+		rfds = master;
 		tv.tv_sec = 30;
         tv.tv_usec = 0;
         retval = select( max_fd + 1, &rfds, NULL, NULL, &tv);
@@ -477,6 +483,10 @@ int main(int argc, char **argv)
 
 		for (i = 0; i <= max_fd; i++){;
 			if(FD_ISSET(i, &rfds)){
+				printf("socket:%d  %ld.%06ld\n",i , tv.tv_sec);
+				printf("isset!\n");
+				FD_SET(i, &rfds);
+
 				if(i == sockfd){
 					printf("i == sockfd\n");
 					socklen_t len = (socklen_t) sizeof(client);
@@ -487,7 +497,8 @@ int main(int argc, char **argv)
 					}
 
 					else{
-						FD_SET(connfd, &rfds);
+						FD_SET(connfd, &master);
+
 						if(connfd > max_fd){
 							max_fd = connfd;
 						}
@@ -501,9 +512,9 @@ int main(int argc, char **argv)
 					memset(&replyMessage, 0, sizeof(replyMessage));
 
 					if(n = read(i, message, sizeof(message) - 1) < 0){
-						perror("reading socket");
+						perror("read()");
 					}
-					printf("value of numbytes!: %d\n", n);
+
 					printf("reading\n");
 					fprintf(stdout, "MessageRequest!:%s\n", message);
 					fillRequestStruct(message,&RL);
@@ -519,13 +530,15 @@ int main(int argc, char **argv)
 					writeToFile(client, RL, RsL);
 
 			    	if(RsL.connectionAlive == true && tv.tv_sec > 0){
-						
+	  					shutdown(i, SHUT_RDWR);
+					//	close(i);
+						FD_CLR(i, &master);
 					}
 
 					else{
 	   					shutdown(i, SHUT_RDWR);
         			    close(i);
-						FD_CLR(i, &rfds);
+						FD_CLR(i, &master);
 					}
 
 					memset(&RL, 0, sizeof(RL));
