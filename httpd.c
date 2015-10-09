@@ -115,9 +115,7 @@ void setUrlArgs(RequestLine *RL){
 			strcat(RL->cookie, RL->color);
 		}
 	}else{
-		printf("URL%s\n", RL->URL);
 	    i++;
-
 	    while(RL->URL[i] != '\0'){
 			if(RL->URL[i] == '&'){
 		    	RL->urlArgs[counter] = '\n';
@@ -130,6 +128,7 @@ void setUrlArgs(RequestLine *RL){
 			counter++;
 	    }
 	}
+
 	RL->urlArgs[i] = '\0';
 }
 
@@ -137,6 +136,7 @@ void setUrlArgs(RequestLine *RL){
 void setValuesFromRequestHeaders(ResponseLine *RsL, RequestLine RL){
 	printf("setVFRH\n");
 	memset(RsL->host, '\0', sizeof(RsL->host));
+	memset(RsL->requestCookie, '\0', sizeof(RsL->requestCookie));
 
 	RsL->connectionAlive = false;
 	int i, j, k;
@@ -155,14 +155,21 @@ void setValuesFromRequestHeaders(ResponseLine *RsL, RequestLine RL){
 		RsL->host[count] = '\0';
 	    }
 		int count = 0;
-		if(strncmp(RL.headers[i], "Cookie:", 6) == 0)
-			for (k = 7; RL.headers[i][k] != '\0'; k++){
+		k = 0;
+		if(strncmp(RL.headers[i], "Cookie:", 6) == 0){
+			printf("theheader!: %s\n", RL.headers[i]);
+			while(RL.headers[i][k] != '='){
+				k++;
+			} 
+			k++;
+			while ( RL.headers[i][k] != '\0'){
 				RsL->requestCookie[count] = RL.headers[i][k];
 				count++;
+				k++;
 			}
 			RsL->requestCookie[count] = '\0';
+		}
 	}
-	printf("RequestCooki is: %s\n", RsL->requestCookie);
 }
 
 void constructResponseLine(RequestLine RL, ResponseLine *RsL){
@@ -246,7 +253,11 @@ void fillRequestStruct(char *buffer, RequestLine *RL){
 	memset(RL->headers, '\0', sizeof(RL->headers));
 	memset(RL->URL, '\0', sizeof(RL->URL));
 	memset(RL->body, '\0', sizeof(RL->body));
-
+	int i;
+	for(i = 0; i < 15; i++){
+		memset(RL->headers[i], '\0', sizeof(RL->headers[i]));
+	}
+	
 	int index = 0;
 	int counter = 0;
 	RL->rlSize = 0;
@@ -333,7 +344,7 @@ void htmlToBuffer(char *replyMessage, RequestLine RL,ResponseLine RsL){
 	char document[800];
   	memset(document, '\0', sizeof(document));
 
-  	strcpy(document, "<!DOCTYPE html>\r\n<html>\r\n\t<head>\r\n\t\t<title>Sample HTML</title> />\r\n\t</head>\r\n\t<body");
+  	strcpy(document, "<!DOCTYPE html>\r\n<html>\r\n\t<head>\r\n\t\t<title>Sample HTML</title>\r\n\t</head>\r\n\t<body");
   	char pContent[200];
   	char pOpen[] = "\t\t<p>\n";;
   	char pClose[] = "</p>\r\n";
@@ -342,8 +353,13 @@ void htmlToBuffer(char *replyMessage, RequestLine RL,ResponseLine RsL){
 
 	if(strcmp(RL.urlCommand, "color") == 0){
 		strcat(document, " style='background-color:");
-    	strcat(document, RL.color);
-    	strcat(document, "'>\n");
+		if(RL.color[0] != '\0'){	
+    		strcat(document, RL.color);
+		}
+		else{
+			strcat(document, RsL.requestCookie);	
+		}
+    		strcat(document, "'>\n");
   	}
 
 	else if (strcmp(RL.urlCommand, "test") == 0){
@@ -466,11 +482,8 @@ int main(int argc, char **argv)
 		else if(retval == 0){
 			printf("retval is 0");
 		}
-		printf("retval:%d\n", retval);
-        /* Check whether there is data on the socket fd. */
 
-		for (i = 0; i <= max_fd; i++){
-		//	printf("forloop;\nmax_fd:%d\n", max_fd);
+		for (i = 0; i <= max_fd; i++){;
 			if(FD_ISSET(i, &rfds)){
 				printf("socket:%d  %ld.%06ld\n",i , tv.tv_sec);
 				printf("isset!\n");
@@ -520,7 +533,7 @@ int main(int argc, char **argv)
 
 			    	if(RsL.connectionAlive == true && tv.tv_sec > 0){
 	  					shutdown(i, SHUT_RDWR);
-						close(i);
+					//	close(i);
 						FD_CLR(i, &master);
 					}
 
