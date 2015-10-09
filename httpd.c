@@ -21,7 +21,8 @@ typedef struct RequestLine{
 	char body[100];
 	char urlCommand[6];
 	char color[10];
-	char urlArgs[40];	
+	char urlArgs[40];
+	char cookie[16];	
 }RequestLine;
 
 typedef struct ResponseLine{
@@ -59,10 +60,12 @@ void setClientIPandPort(ResponseLine *RsL, struct sockaddr_in client){
 }
 
 void setUrlArgs(RequestLine *RL){
-	printf("seturlargs");
+	printf("seturlargs\n");
 	memset(RL->urlCommand, '\0', sizeof(RL->urlCommand));
 	memset(RL->color, '\0', sizeof(RL->color));
 	memset(RL->urlArgs, '\0', sizeof(RL->urlArgs));
+	memset(RL->cookie, '\0', sizeof(RL->cookie));
+
 	int i = 1;
 	int  counter = 0;
 	if(RL->URL[i] == '\0'){
@@ -70,18 +73,26 @@ void setUrlArgs(RequestLine *RL){
 		RL->urlArgs[counter] = '\0';
 		return;
 	}
-	    while(RL->URL[i] != '?'){
+	    while(RL->URL[i] != '?' && RL->URL[i] != '\0'){
 		RL->urlCommand[counter] = RL->URL[i];
 		i++;
 		counter++;
 	}
 	counter = 0;
+	int cookiecount = 0;
 	if(strcmp(RL->urlCommand, "color") == 0){
-		while(RL->URL[i-1] != '='){i++;}
+		while(RL->URL[i-1] != '=' && RL->URL[i] != '\0'){		
+			i++;
+		}
+		
 		while(RL->URL[i] != '\0'){
 		    RL->color[counter] = RL->URL[i];
 		    i++;
 		    counter++;
+		}
+		if(RL->color[1] != '\0'){
+			strcat(RL->cookie, " color=");
+			strcat(RL->cookie, RL->color);
 		}
 	}else{
 	    i++;
@@ -92,11 +103,13 @@ void setUrlArgs(RequestLine *RL){
 		    i++;
 		}
 		RL->urlArgs[counter] = RL->URL[i];
-		i++;
-		counter++;
+			i++;
+			counter++;
 	    }
 	}
+	printf("cookie:%s", RL->cookie);
 }
+
 //Checks if the connection is keep alive and gets the host
 void setValuesFromRequestHeaders(ResponseLine *RsL, RequestLine RL){
 	printf("setVFRH\n");
@@ -130,9 +143,6 @@ void constructResponseLine(RequestLine RL, ResponseLine *RsL){
 		memset(RsL->responseLine, '\0', sizeof(RsL->responseLine));
 		memset(RsL->reasonPhrase, '\0', sizeof(RsL->reasonPhrase));
 	   constructURI(RsL, RL);
-		printf("RLversion:%s\n", RL.version);
-		printf("RL.URL:%s\n", RL.URL);
-		printf("RL.requestType:%s\n", RL.requestType);	
 	   time_t t;
        struct tm *tmpt;
 	
@@ -166,7 +176,6 @@ void constructResponseLine(RequestLine RL, ResponseLine *RsL){
 	strcat(RsL->responseLine, " ");
 	strcat(RsL->responseLine, RsL->reasonPhrase);
 	strcat(RsL->responseLine, "\r\n");	
-	printf("responseline mid:!", RsL->responseLine);
 	strcat(RsL->responseLine, "date: ");
 	strcat(RsL->responseLine, RsL->date);
 	strcat(RsL->responseLine, "\r\n"); 	
@@ -174,8 +183,17 @@ void constructResponseLine(RequestLine RL, ResponseLine *RsL){
 	strcat(RsL->responseLine, "\r\n");
 	strcat(RsL->responseLine, RsL->server);
 	strcat(RsL->responseLine, "\r\n");
-	if(RsL->connectionAlive == false){strcat(RsL->responseLine, RsL->conClose);}
-	else{strcat(RsL->responseLine, RsL->conAlive);}
+	if(RL.cookie[0] != '\0'){
+		strcat(RsL->responseLine, "Set-Cookie: ");
+		strcat(RsL->responseLine, RL.cookie);
+		strcat(RsL->responseLine, "\r\f");
+	}
+	if(RsL->connectionAlive == false){
+		strcat(RsL->responseLine, RsL->conClose);
+	}
+	else{
+		strcat(RsL->responseLine, RsL->conAlive);
+	}
 	strcat(RsL->responseLine, "\r\n");
 	strcat(RsL->responseLine, "\r\n");
 	RsL->rsLSize = strlen(RsL->responseLine);
@@ -201,8 +219,8 @@ void fillRequestStruct(char *buffer, RequestLine *RL){
 	
 	RL->requestType[counter] = '\0';
 	counter = 0;
-	index++;;
-	RL->rlSize++;;
+	index++;
+	RL->rlSize++;
 	printf("mid fill request\n");
 	while(buffer[index] != ' '){
 		RL->URL[counter] = buffer[index];
