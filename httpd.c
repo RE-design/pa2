@@ -313,26 +313,24 @@ void htmlToBuffer(char *replyMessage, RequestLine RL,ResponseLine RsL){
   	char docClose[] = "\t</body>\r\n</html>\r\n\r\n\0";
   	char closingSymbol[] = ">";
   	if(strcmp(RL.urlCommand, "color") == 0){
-			strcat(document, " style='background-color:");
-
-    	    strcat(document, RL.color);
-    	    strcat(document, "'>\n");
+		strcat(document, " style='background-color:");
+    	strcat(document, RL.color);
+    	strcat(document, "'>\n");
   	}
   	else if (strcmp(RL.urlCommand, "test") == 0){
-			printf("TEST");
 	    strcat(document, ">\n");
         strcat(pContent, pOpen);
-			strcat(pContent, "\t\t\t");
-            strcat(pContent, RsL.URI);
-            strcat(pContent, "<br />\n\t\t\t");
-    	    strcat(pContent, RsL.clientIP);
-			strcat(pContent, ":");
-			strcat(pContent, RsL.clientPort);
-            strcat(pContent, "<br />\n\t\t\t");
-            strcat(pContent, RL.urlArgs);
-            strcat(pContent, "<br />\n\t\t");
-            strcat(pContent, pClose);
-	        strcat(document, pContent);
+		strcat(pContent, "\t\t\t");
+        strcat(pContent, RsL.URI);
+        strcat(pContent, "<br />\n\t\t\t");
+    	strcat(pContent, RsL.clientIP);
+		strcat(pContent, ":");
+		strcat(pContent, RsL.clientPort);
+        strcat(pContent, "<br />\n\t\t\t");
+        strcat(pContent, RL.urlArgs);
+        strcat(pContent, "<br />\n\t\t");
+        strcat(pContent, pClose);
+	    strcat(document, pContent);
   	}
 	else{
 		strcat(pContent, ">\n");
@@ -349,15 +347,16 @@ void htmlToBuffer(char *replyMessage, RequestLine RL,ResponseLine RsL){
 	}
 
  	if(strcmp(RL.requestType, "POST") == 0){
- 	       strcat(document, "\t\t<p>\n\t\t");
-	       strcat(document, RL.body);
-		   strcat(document, "\n");
-		   strcat(document, "\t\t</p>\n");
-       }
+ 	    strcat(document, "\t\t<p>\n\t\t");
+   		strcat(document, RL.body);
+   		strcat(document, "\n");
+	 	strcat(document, "\t\t</p>\n");
+	}
 	strcat(document, docClose);
 
  	memcpy(replyMessage + RsL.rsLSize, document, sizeof(document));
 }
+
 void writeMessage(char *buffer, ResponseLine RsL){
 	memcpy(buffer + 0, RsL.responseLine, sizeof(RsL.responseLine));
 	buffer[strlen(RsL.responseLine)] = '\0';
@@ -371,23 +370,23 @@ void writeToFile(struct sockaddr_in client, RequestLine RL, ResponseLine RsL){
 	if(fd == NULL){
 	    fd = fopen("request.log", "w+");
 		if(fd == NULL){
-		printf("error opening file");
+			printf("error opening file");
 	    }
 	}
 
 	if(fputs(RsL.date, fd) < 0)printf("error writing to file");
-	fputs(" : ", fd);
-	fputs(RsL.clientIP, fd);
-	fputs(":", fd);
-	fputs(RsL.clientPort, fd);
- 	fputs(" ", fd);
-	fputs(RL.requestType, fd);
-	fputs(" ", fd);
-	fputs(RsL.URI, fd);
-	fputs(":", fd);
-	fputs(RsL.statuscode, fd);
-	fputs("\r\n", fd);
-	fclose(fd);
+		fputs(" : ", fd);
+		fputs(RsL.clientIP, fd);
+		fputs(":", fd);
+		fputs(RsL.clientPort, fd);
+	 	fputs(" ", fd);
+		fputs(RL.requestType, fd);
+		fputs(" ", fd);
+		fputs(RsL.URI, fd);
+		fputs(":", fd);
+		fputs(RsL.statuscode, fd);
+		fputs("\r\n", fd);
+		fclose(fd);
 }
 
 int main(int argc, char **argv)
