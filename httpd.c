@@ -48,7 +48,7 @@ typedef struct IPtoIndex{
 	int index;
 	char clientIP[INET_ADDRSTRLEN];
 }IPtoIndex;
-
+//set IP index for multiple connections
 void setIPindex(IPtoIndex *IP, struct sockaddr_in client, int *count){
 	printf("inIPindex\n");
 	struct sockaddr_in* ip4Add = (struct sockaddr_in*)&client;
@@ -62,7 +62,7 @@ void constructURI(ResponseLine *RsL, RequestLine RL){
 	strcat(RsL->URI, RsL->host);
 	strcat(RsL->URI, RL.URL);
 }
-
+// set the address and port nr for client
 void setClientIPandPort(ResponseLine *RsL, struct sockaddr_in client){
 	memset(RsL->clientPort, '\0', sizeof(RsL->clientPort));
  	memset(RsL->clientIP, '\0', sizeof(RsL->clientIP));
@@ -72,7 +72,7 @@ void setClientIPandPort(ResponseLine *RsL, struct sockaddr_in client){
 	int portnum = (int) ntohs(client.sin_port);
 	sprintf(RsL->clientPort, "%d", portnum);
 }
-
+// set the arguments from URL to a string
 void setUrlArgs(RequestLine *RL){
 	printf("seturlargs\n");
 	memset(RL->urlCommand, '\0', sizeof(RL->urlCommand));
@@ -150,28 +150,32 @@ void setValuesFromRequestHeaders(ResponseLine *RsL, RequestLine RL){
 }
 
 void constructResponseLine(RequestLine RL, ResponseLine *RsL){	   
-	    setValuesFromRequestHeaders(RsL, RL);
-		memset(RsL->version, '\0', sizeof(RsL->version));
-		memset(RsL->conType, '\0', sizeof(RsL->conType));
-		memset(RsL->server, '\0', sizeof(RsL->server));
-		memset(RsL->conClose, '\0', sizeof(RsL->conClose));
-		memset(RsL->conAlive, '\0', sizeof(RsL->conAlive));
-		memset(RsL->date, '\0', sizeof(RsL->date));
-		memset(RsL->responseLine, '\0', sizeof(RsL->responseLine));
-		memset(RsL->reasonPhrase, '\0', sizeof(RsL->reasonPhrase));
-	   constructURI(RsL, RL);
-	   time_t t;
-       struct tm *tmpt;
+	setValuesFromRequestHeaders(RsL, RL);
+	memset(RsL->version, '\0', sizeof(RsL->version));
+	memset(RsL->conType, '\0', sizeof(RsL->conType));
+	memset(RsL->server, '\0', sizeof(RsL->server));
+	memset(RsL->conClose, '\0', sizeof(RsL->conClose));
+	memset(RsL->conAlive, '\0', sizeof(RsL->conAlive));
+	memset(RsL->date, '\0', sizeof(RsL->date));
+	memset(RsL->responseLine, '\0', sizeof(RsL->responseLine));
+	memset(RsL->reasonPhrase, '\0', sizeof(RsL->reasonPhrase));
+   
+    constructURI(RsL, RL);
+    time_t t;
+    struct tm *tmpt;
 	
-           t = time(NULL);
-           tmpt = localtime(&t);
-           if (tmpt == NULL) {
-               perror("getting localtime failed");
-           }
-	               printf("CRLtop\n"); 
+    t = time(NULL);
+    tmpt = localtime(&t);
+
+    if (tmpt == NULL) {
+        perror("getting localtime failed");
+    }
+    printf("CRLtop\n");
+ 
 	strftime(RsL->date,21,"%Y-%m-%d %H:%M:%S", tmpt);
 	RsL->date[20] = '\0';
 	strcpy(RsL->version, RL.version);
+
 	if(memcmp(RsL->version, "HTTP/1.0", 7) != 0 && 
 		memcmp(RsL->version, "HTTP/1.0", 7) != 0){
 		strcpy(RsL->statuscode, "300");
