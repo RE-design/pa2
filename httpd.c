@@ -43,6 +43,19 @@ typedef struct ResponseLine{
 	char clientPort[6]; 
 }ResponseLine;
 
+typedef struct IPtoIndex{
+	int index;
+	char clientIP[INET_ADDRSTRLEN];
+}IPtoIndex;
+
+void setIPindex(IPtoIndex *IP, struct sockaddr_in client, int *count){
+	printf("inIPindex\n");
+	struct sockaddr_in* ip4Add = (struct sockaddr_in*)&client;
+	int ipAddr = ip4Add->sin_addr.s_addr;
+	inet_ntop( AF_INET, &ipAddr, IP[*count].clientIP, INET_ADDRSTRLEN); 
+	IP[*count].index = *count;
+	*count++; 
+}
 void constructURI(ResponseLine *RsL, RequestLine RL){
 	memset(RsL->URI, '\0', sizeof(RsL->URI));
 	strcat(RsL->URI, RsL->host);
@@ -54,7 +67,7 @@ void setClientIPandPort(ResponseLine *RsL, struct sockaddr_in client){
  	memset(RsL->clientIP, '\0', sizeof(RsL->clientIP));
 	struct sockaddr_in* ip4Add = (struct sockaddr_in*)&client;
 	int ipAddr = ip4Add->sin_addr.s_addr;
-	inet_ntop( AF_INET, &ipAddr, RsL->clientIP, INET_ADDRSTRLEN );
+	inet_ntop( AF_INET, &ipAddr, RsL->clientIP, INET_ADDRSTRLEN);
 	int portnum = (int) ntohs(client.sin_port);
 	sprintf(RsL->clientPort, "%d", portnum);
 }
@@ -95,6 +108,7 @@ void setUrlArgs(RequestLine *RL){
 			strcat(RL->cookie, RL->color);
 		}
 	}else{
+		printf("URL%s\n", RL->URL);
 	    i++;
 	    while(RL->URL[i] != '\0'){
 		if(RL->URL[i] == '&'){
@@ -107,7 +121,8 @@ void setUrlArgs(RequestLine *RL){
 			counter++;
 	    }
 	}
-	printf("cookie:%s", RL->cookie);
+		RL->urlArgs[i] = '\0';
+	printf("urlargs:%s\n", RL->urlArgs);
 }
 
 //Checks if the connection is keep alive and gets the host
@@ -117,8 +132,9 @@ void setValuesFromRequestHeaders(ResponseLine *RsL, RequestLine RL){
 	RsL->connectionAlive = false;
 	int i, j;
 	for (i = 0; i < RL.numberOfHeaders; i++){
-	    if(strncmp(RL.headers[i], "Connection: keep-alive", 21) == 0){
-		RsL->connectionAlive = true;	
+	    if(strncmp(RL.headers[i], "Connection: keep-alive", 22) == 0){
+		RsL->connectionAlive = true;
+		printf("connection is keep alice");	
 	    }
 	    if(strncmp(RL.headers[i], "Host:",4) == 0){
 		int count = 0;
@@ -165,10 +181,10 @@ void constructResponseLine(RequestLine RL, ResponseLine *RsL){
 		strcpy(RsL->reasonPhrase, "OK");
 	}
 ;
-	strcpy(RsL->server,"server: Simple HTTP server");
-	strcpy(RsL->conType, "content-type: html/text");
-	strcpy(RsL->conAlive, "connection: keep-alive");
-	strcpy(RsL->conClose, "connection: close");
+	strcpy(RsL->server,"Server: Simple HTTP server");
+	strcpy(RsL->conType, "Content-Type: text/html");
+	strcpy(RsL->conAlive, "Connection: keep-alive");
+	strcpy(RsL->conClose, "Connection: close");
 	strcat(RsL->responseLine, " ");
 	strcat(RsL->responseLine, RsL->version);
 	strcat(RsL->responseLine," ");
@@ -228,18 +244,21 @@ void fillRequestStruct(char *buffer, RequestLine *RL){
 		counter++;
 		RL->rlSize++;
 	}
-	
+	printf("afterurl\n");
+
 	RL->URL[counter] = '\0';
 	counter = 0;
 	index++;
 	RL->rlSize++;
 	while(buffer[index] != '\r'){
+
 		RL->version[counter] = buffer[index];
+		printf("%c", RL->version[counter]);
 		index++;
 		counter++;
 		RL->rlSize++; 
 	}
-		
+	printf("after version\n");	
 	RL->rlSize = RL->rlSize + 2; 
 	RL->version[counter] = '\0';
 	int HL = 0;
@@ -249,16 +268,19 @@ void fillRequestStruct(char *buffer, RequestLine *RL){
  	    while(buffer[RL->rlSize] != '\r' && buffer[RL->rlSize + 1] != '\n'){
 		RL->headers[HL][counter] = buffer[RL->rlSize];
 		RL->rlSize++;
-		counter++;	
+		printf("%c", RL->headers[HL][counter]);	
+		counter++;
 	    }
 		RL->headers[HL][counter] = '\0';
 		HL++;
+			printf("\n");
 		counter = 0;
 		RL->rlSize = RL->rlSize + 2;
 		if((buffer[RL->rlSize] == '\r' && buffer[RL->rlSize + 1] == '\n') || HL >= 15){
 		    RL->rlSize = RL->rlSize + 2;
 		    break;}
 	}
+	
 	RL->numberOfHeaders = HL;
 	index = RL->rlSize;
 	counter = 0;
@@ -278,11 +300,11 @@ void fillRequestStruct(char *buffer, RequestLine *RL){
 
 void htmlToBuffer(char *replyMessage, RequestLine RL,ResponseLine RsL){
 	if(strcmp(RL.requestType, "HEAD") == 0){return;}
-	char document[512];
+	char document[800];
   	memset(document, '\0', sizeof(document));
   
   	strcpy(document, "<!DOCTYPE html>\r\n<html>\r\n\t<head>\r\n\t\t<title>Sample HTML</title> />\r\n\t</head>\r\n\t<body");
-  	char pContent[100];
+  	char pContent[200];
   	char pOpen[] = "\t\t<p>\n";;
   	char pClose[] = "</p>\r\n";
   	char docClose[] = "\t</body>\r\n</html>\r\n\r\n\0";
@@ -293,6 +315,7 @@ void htmlToBuffer(char *replyMessage, RequestLine RL,ResponseLine RsL){
     	    strcat(document, "'>\n");
   	}
   	else if (strcmp(RL.urlCommand, "test") == 0){
+			printf("TEST");
 	    strcat(document, ">\n");
         strcat(pContent, pOpen);
 			strcat(pContent, "\t\t\t");
@@ -334,8 +357,7 @@ void htmlToBuffer(char *replyMessage, RequestLine RL,ResponseLine RsL){
 void writeMessage(char *buffer, ResponseLine RsL){
 	memcpy(buffer + 0, RsL.responseLine, sizeof(RsL.responseLine));
 	buffer[strlen(RsL.responseLine)] = '\0';	
-	printf("responseline:\n%s", RsL.responseLine);
-	printf("buffer:\n%s", buffer);
+
 }
 
 void writeToFile(struct sockaddr_in client, RequestLine RL, ResponseLine RsL){
@@ -367,7 +389,7 @@ void writeToFile(struct sockaddr_in client, RequestLine RL, ResponseLine RsL){
 int main(int argc, char **argv)
 {
 		struct timeval tv;
-		const int MAXCLIENTS = 10;
+		const int MAXCLIENTS = 20;
 		int yes = 1;	
         int i, max_fd, sockfd, clients[MAXCLIENTS], retval, connfd, j;
         struct sockaddr_in server, client;
@@ -376,7 +398,9 @@ int main(int argc, char **argv)
 		FD_ZERO(&master);
         char message[512];
 		char replyMessage[1024];
-       
+       	IPtoIndex IP[MAXCLIENTS];
+		int countIP = 0;
+		memset(IP, 0, sizeof(IP));
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         memset(&server, 0, sizeof(server));
         server.sin_family = AF_INET;
@@ -392,21 +416,24 @@ int main(int argc, char **argv)
  
 		FD_SET(sockfd, &master);
 		max_fd = sockfd;
-		printf("sockfd:%d\n", sockfd);
         for (;;) {
 				ssize_t n;
 				rfds = master;
 				tv.tv_sec = 30;
                 tv.tv_usec = 0;
-                retval = select( max_fd + 1, &rfds, NULL, NULL, NULL);
-                if (retval == -1) {
+                retval = select( max_fd + 1, &rfds, NULL, NULL, &tv);
+                if (retval == 0) {
                         perror("select()");
                 }
-				printf("select\n");
+				else if(retval == 0){
+					printf("retval is 0");
+				}
+				printf("retval:%d\n", retval);
                 /* Check whether there is data on the socket fd. */
 				for (i = 0; i <= max_fd; i++){
-					printf("forloop;\nmax_fd:%d\n", max_fd);
-					if(FD_ISSET(i, &rfds)){ 
+				//	printf("forloop;\nmax_fd:%d\n", max_fd);
+					if(FD_ISSET(i, &rfds)){
+						printf("socket:%d  %ld.%06ld\n",i , tv.tv_sec); 
 						printf("isset!\n");
 						FD_SET(i, &rfds);
 						if(i == sockfd){
@@ -420,7 +447,9 @@ int main(int argc, char **argv)
 								FD_SET(connfd, &master);
 								if(connfd > max_fd){
 									max_fd = connfd;
-								}	
+								}
+							
+						//		setIPindex(IP, client, &countIP);
 							}			
 		 				}else{
 							RequestLine RL;
@@ -444,23 +473,27 @@ int main(int argc, char **argv)
 							}	
 			
  							writeToFile(client, RL, RsL); 
-							memset(&RL, 0, sizeof(RL));
-							memset(&RsL, 0, sizeof(RsL));
 
 
-					    	if(RsL.connectionAlive == true){
-			   
+
+					    	if(RsL.connectionAlive == true && tv.tv_sec > 0){
+			  					shutdown(i, SHUT_RDWR);
+								close(i);
+								FD_CLR(i, &master); 
 							}
 							else{
-			   					shutdown(connfd, SHUT_RDWR);
+			   					shutdown(i, SHUT_RDWR);
                 			    close(i);
 								FD_CLR(i, &master);
 							}
+							memset(&RL, 0, sizeof(RL));
+							memset(&RsL, 0, sizeof(RsL));
+							
+
+							
 				}							                    
 			}
-				printf("\n%d is not in the FD_SET");
-				fflush(stdout);
-			
+					fflush(stdout);		
 		}
 	}
 }
